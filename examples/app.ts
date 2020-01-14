@@ -2,19 +2,23 @@ import * as readline from 'readline';
 
 import { Bus } from '../src/Bus';
 
-var connStr = "amqp://localhost";
-var exchangeName = "AsyncMessagingConsole_Rpc";
+let connStr = "amqp://localhost";
+let exchangeName = "AsyncMessagingConsole_Rpc";
 
 const run = async () => {
-    var bus = new Bus(connStr, exchangeName);
+    let bus = new Bus(connStr, exchangeName);
     await bus.connect();
 
-    var rpcServer = bus.createRpcServer("AsyncMessagingConsole_RpcQueue");
+    let rpcServer = bus.createRpcServer("AsyncMessagingConsole_RpcQueue");
         
     await rpcServer.endpoint( "getResponse", command => {
         console.log(command);
-        return true;
+        return { success: true };
     });
+
+    let rpcClient = await bus.createRpcClient(); 
+    let result = await rpcClient.sendCommand("getResponse", { message: "hello" });
+    console.log(result);
 
     const rl = readline.createInterface({
         input: process.stdin,

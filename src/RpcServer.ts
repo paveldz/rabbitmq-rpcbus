@@ -9,22 +9,26 @@ export class RpcServer {
         this._connection = connection;
     }
 
-    async endpoint(methodName: string, handler: (input: any) => any) {
+    async endpoint(commandName: string, handler: (input: any) => any) {
 
-        var channel = await this._connection.createChannel();
-        await this.setupEndpoint(methodName, channel);
+        let channel = await this._connection.createChannel();
+        await this.setupEndpoint(commandName, channel);
 
         channel.consume(this._queueName, msg => {
-            console.log(msg.content.toString());
+            let inputObj = JSON.parse(msg.content.toString());
+            let result = handler(inputObj);
 
-            var inputObj = JSON.parse(msg.content.toString());
-            var result = handler(inputObj);
+            let resultBytes = Buffer.from(JSON.stringify(result));
+
+            channel.sendToQueue(msg.properties.replyTo, resultBytes, {
+                 correlationId: msg.properties.correlationId 
+            });
 
             channel.ack(msg);
         });
     }
 
-    private async setupEndpoint(methodName: string, channel: any) {
+    private async setupEndpoint(commandName: string, channel: any) {
         await channel.assertExchange(this._exchangeName, "direct", { durable: false });
 
         await channel.assertQueue(this._queueName, {
@@ -33,6 +37,6 @@ export class RpcServer {
             autoDelete: false
         });
 
-        await channel.bindQueue(this._queueName, this._exchangeName, methodName);
+        await channel.bindQueue(this._queueName, this._exchangeName, commandName);
     }
 }

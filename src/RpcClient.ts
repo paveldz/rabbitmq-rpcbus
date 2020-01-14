@@ -1,0 +1,61 @@
+import { v4 as uuid } from 'uuid';
+
+export class RpcClient {
+    private readonly _exchangeName: string;
+    private readonly _connection: any;
+
+    private readonly _promiseResolveByCorrId = new Map<string, any>();
+
+    private _channel: any;
+    private _replyQueueName: string;
+
+    private constructor(exchangeName: string, connection: any) {
+        this._exchangeName = exchangeName;
+        this._connection = connection;
+    }
+
+    static async create(exchangeName: string, connection: any) {
+        let instance = new RpcClient(exchangeName, connection);
+        await instance.start();
+
+        return instance;
+    }
+
+    sendCommand(name: string, data: any) {
+        let id = uuid();
+        let dataBytes = Buffer.from(JSON.stringify(data));
+
+        let resolveFunc = null;
+        let promise = new Promise<any>((resolve, reject) => {
+            resolveFunc = resolve;
+        });
+
+        this._promiseResolveByCorrId.set(id, resolveFunc);
+
+        this._channel.publish(this._exchangeName, name, dataBytes, {
+            correlationId: id,
+            replyTo: this._replyQueueName,
+            persistent: true
+        });
+
+        return promise;
+    }
+
+    private async start() {
+        this._channel = await this._connection.createChannel();
+
+        await this._channel.assertExchange(this._exchangeName, "direct", { durable: false });
+
+        let replyToQueue = await this._channel.assertQueue("", { exclusive: true });
+        this._replyQueueName = replyToQueue.queue;
+
+        this._channel.consume(this._replyQueueName, msg => {
+            let resolveFunc = this._promiseResolveByCorrId.get(msg.properties.correlationId)
+
+            if (resolveFunc) {
+                this._promiseResolveByCorrId.delete(msg.properties.correlationId);
+                resolveFunc(JSON.parse(msg.content.toString()));
+            }
+        }, { noAck: true });
+    }
+}

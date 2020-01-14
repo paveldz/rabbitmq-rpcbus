@@ -1,6 +1,7 @@
 import { connect } from 'amqplib/channel_api';
 
 import { IBus } from './IBus';
+import { RpcClient } from './RpcClient';
 import { RpcServer } from './RpcServer';
 
 export class Bus implements IBus {
@@ -19,8 +20,12 @@ export class Bus implements IBus {
     }
 
     createRpcServer(queueName: string) {
-        var rpcServer = new RpcServer(queueName, this._exchangeName, this._connection);
+        let rpcServer = new RpcServer(queueName, this._exchangeName, this._connection);
 
         return rpcServer;
+    }
+
+    async createRpcClient() {
+        return await RpcClient.create(this._exchangeName, this._connection);
     }
 }
