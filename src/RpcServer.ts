@@ -1,9 +1,11 @@
+import { Connection, Channel } from "amqplib";
+
 export class RpcServer {
     private readonly _queueName: string;
     private readonly _exchangeName: string;
-    private readonly _connection: any;
+    private readonly _connection: Connection;
 
-    constructor(queueName: string, exchangeName: string, connection: any) {
+    constructor(queueName: string, exchangeName: string, connection: Connection) {
         this._queueName = queueName;
         this._exchangeName = exchangeName;
         this._connection = connection;
@@ -28,7 +30,7 @@ export class RpcServer {
         });
     }
 
-    private async setupEndpoint(commandName: string, channel: any) {
+    private async setupEndpoint(commandName: string, channel: Channel) {
         await channel.assertExchange(this._exchangeName, "direct", { durable: false });
 
         await channel.assertQueue(this._queueName, {

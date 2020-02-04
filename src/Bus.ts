@@ -1,5 +1,4 @@
-import { connect } from 'amqplib/channel_api';
-
+import { connect, Connection } from 'amqplib';
 import { IBus } from './IBus';
 import { RpcClient } from './RpcClient';
 import { RpcServer } from './RpcServer';
@@ -8,7 +7,7 @@ export class Bus implements IBus {
     private readonly _exchangeName: string;
     private readonly _connectionString: string;
 
-    private _connection: any;
+    private _connection: Connection;
 
     constructor(connectionsString: string, exchangeName: string) {
         this._exchangeName = exchangeName;

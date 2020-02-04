@@ -15,5 +15,8 @@
     "@types/amqplib": "^0.5.13",
     "amqplib": "^0.5.5",
     "uuid": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/uuid": "^3.4.7"
   }
 }

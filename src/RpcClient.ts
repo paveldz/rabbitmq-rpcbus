@@ -1,27 +1,28 @@
+import { Channel, Connection } from 'amqplib';
 import { v4 as uuid } from 'uuid';
 
 export class RpcClient {
     private readonly _exchangeName: string;
-    private readonly _connection: any;
+    private readonly _connection: Connection;
 
     private readonly _promiseResolveByCorrId = new Map<string, any>();
 
-    private _channel: any;
+    private _channel: Channel;
     private _replyQueueName: string;
 
-    private constructor(exchangeName: string, connection: any) {
+    private constructor(exchangeName: string, connection: Connection) {
         this._exchangeName = exchangeName;
         this._connection = connection;
     }
 
-    static async create(exchangeName: string, connection: any) {
+    static async create(exchangeName: string, connection: Connection) {
         let instance = new RpcClient(exchangeName, connection);
         await instance.start();
 
         return instance;
     }
 
-    sendCommand(name: string, data: any) {
+    async sendCommand(name: string, data: any) {
         let id = uuid();
         let dataBytes = Buffer.from(JSON.stringify(data));
 

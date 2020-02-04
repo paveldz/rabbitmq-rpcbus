@@ -1,5 +1,4 @@
 import * as readline from 'readline';
-
 import { Bus } from '../src/Bus';
 
 let connStr = "amqp://localhost";
