@@ -9,12 +9,14 @@ export class RpcServer {
     private _channel: Channel;
 
     private readonly _endpoints: RpcEndpoint[] = [];
+    private readonly _routingTable = new Map<string, (input: any) => any>();
 
     constructor(exchangeName: string, queueName: string, endpoints: RpcEndpoint[]) {
         this._queueName = queueName;
         this._exchangeName = exchangeName;
 
         Array.prototype.push.apply(this._endpoints, endpoints);
+        this._endpoints.forEach(endpoint => this._routingTable.set(endpoint.route, endpoint.handler));
     }
 
     public async start(connection: Connection) {
@@ -26,8 +28,8 @@ export class RpcServer {
         this._channel.consume(this._queueName, msg => {
             let inputObj = JSON.parse(msg.content.toString());
 
-            let endpoint = this._endpoints.find(endp => endp.route == msg.fields.routingKey);
-            let result = endpoint.handler(inputObj); 
+            let handler = this._routingTable.get(msg.fields.routingKey);
+            let result = handler(inputObj); 
 
             let resultBytes = Buffer.from(JSON.stringify(result));
 
