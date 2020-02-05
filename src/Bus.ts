@@ -2,41 +2,41 @@ import { connect, Connection } from 'amqplib';
 import { IBus } from './IBus';
 import { RpcClient } from './RpcClient';
 import { RpcServer } from './RpcServer';
-import { BusConfig } from './cfg/BusConfig';
+import { RpcServerConfig } from './cfg/RpcServerConfig';
 import { IRpcClient } from './IRpcClient';
 
 export class Bus implements IBus {
     private readonly _exchangeName: string;
     private readonly _connectionString: string;
 
-    private readonly _busConfig: BusConfig;
+    private readonly _rpcServerConfig: RpcServerConfig;
 
     private _rpcClient: RpcClient;
     private _rpcServer: RpcServer;
 
     private _connection: Connection;
 
-    constructor(connectionsString: string, exchangeName: string, busConfig: BusConfig) {
+    constructor(connectionsString: string, exchangeName: string, rpcServerConfig: RpcServerConfig) {
         this._exchangeName = exchangeName;
         this._connectionString = connectionsString;
 
-        this._busConfig = busConfig;
+        this._rpcServerConfig = rpcServerConfig;
     }
 
     public static async create(
         connectionsString: string,
         exchangeName: string,
-        configure: (config: BusConfig) => void) : Promise<IBus> {
+        configure: (config: RpcServerConfig) => void) : Promise<IBus> {
 
-        let cfg = new BusConfig();
+        let cfg = new RpcServerConfig();
         configure(cfg);
 
         let bus = new Bus(connectionsString, exchangeName, cfg);
 
-        await bus.connect();
-        await bus.createRpcClient();
-        await bus.createRpcServer();
+        bus._rpcClient = new RpcClient(exchangeName);
+        bus._rpcServer = new RpcServer(exchangeName, cfg.rpcServerQueueName, cfg.endpoints);
 
+        await bus.connect();
         return bus;
     }
 
@@ -46,26 +46,14 @@ export class Bus implements IBus {
 
     public async connect() {
         this._connection = await connect(this._connectionString);
+        await this._rpcClient.start(this._connection);
+        await this._rpcServer.start(this._connection);
 
-        this._connection.on("close", (err) => {
-            if (err) {
-                console.log("Critical error occured: ");
-                console.log(err);
-            }
+        this._connection.on("close", () => {
+            console.log("RabbitMQ connection is closed. Trying to re-connect...");
+            this.connect();
         });
 
-        this._connection.on("error", (err) => {
-            console.log(err);
-        });
-    }
-
-    private async createRpcClient() : Promise<void> {
-        let client = await RpcClient.create(this._exchangeName, this._connection);
-        this._rpcClient = client;
-    }
-
-    private async createRpcServer() : Promise<void> {
-        let server = new RpcServer("AsyncMessagingConsole_RpcQueue", this._exchangeName, this._connection);
-        await server.setupEndpoints(this._busConfig.endpoints);
+        console.log("RabbitMQ is connected.");
     }
 }

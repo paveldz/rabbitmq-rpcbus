@@ -4,26 +4,18 @@ import { IRpcClient } from './IRpcClient';
 
 export class RpcClient implements IRpcClient {
     private _connection: Connection;
-    private readonly _exchangeName: string;
+    private _channel: Channel;
 
     private readonly _promiseResolveByCorrId = new Map<string, any>();
 
-    private _channel: Channel;
+    private readonly _exchangeName: string;
     private _replyQueueName: string;
 
-    private constructor(exchangeName: string, connection: Connection) {
+    constructor(exchangeName: string) {
         this._exchangeName = exchangeName;
-        this._connection = connection;
     }
 
-    public static async create(exchangeName: string, connection: Connection) {
-        let instance = new RpcClient(exchangeName, connection);
-        await instance.start();
-
-        return instance;
-    }
-
-    public async sendCommand(name: string, data: any) {
+    public async sendCommand(route: string, data: any) {
         let id = uuid();
         let dataBytes = Buffer.from(JSON.stringify(data));
 
@@ -34,7 +26,7 @@ export class RpcClient implements IRpcClient {
 
         this._promiseResolveByCorrId.set(id, resolveFunc);
 
-        this._channel.publish(this._exchangeName, name, dataBytes, {
+        this._channel.publish(this._exchangeName, route, dataBytes, {
             correlationId: id,
             replyTo: this._replyQueueName,
             persistent: true
@@ -43,7 +35,8 @@ export class RpcClient implements IRpcClient {
         return promise;
     }
 
-    private async start() {
+    public async start(connection: Connection) {
+        this._connection = connection;
         this._channel = await this._connection.createChannel();
 
         await this._channel.assertExchange(this._exchangeName, "direct", { durable: false });

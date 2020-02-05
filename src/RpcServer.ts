@@ -4,39 +4,38 @@ import { RpcEndpoint } from "./cfg/RpcEndpoint";
 export class RpcServer {
     private readonly _queueName: string;
     private readonly _exchangeName: string;
-    private readonly _connection: Connection;
 
-    constructor(queueName: string, exchangeName: string, connection: Connection) {
+    private _connection: Connection;
+    private _channel: Channel;
+
+    private readonly _endpoints: RpcEndpoint[] = [];
+
+    constructor(exchangeName: string, queueName: string, endpoints: RpcEndpoint[]) {
         this._queueName = queueName;
         this._exchangeName = exchangeName;
+
+        Array.prototype.push.apply(this._endpoints, endpoints);
+    }
+
+    public async start(connection: Connection) {
         this._connection = connection;
-    }
 
-    public async setupEndpoints(endpoints: RpcEndpoint[]) {
-        let channel = await this._connection.createChannel();
-        await this.setupInfrastructure(channel);
-        channel.close();
+        this._channel = await this._connection.createChannel();
+        await this.setupInfrastructure(this._channel);
 
-        for (let i = 0; i < endpoints.length; ++i) {
-            await this.setupEndpoint(endpoints[i]);
-        }
-    }
-
-    private async setupEndpoint(endpoint: RpcEndpoint) : Promise<void> {
-        let channel = await this._connection.createChannel();
-        await channel.bindQueue(this._queueName, this._exchangeName, endpoint.route);
-
-        channel.consume(this._queueName, msg => {
+        this._channel.consume(this._queueName, msg => {
             let inputObj = JSON.parse(msg.content.toString());
-            let result = endpoint.handler(inputObj);
+
+            let endpoint = this._endpoints.find(endp => endp.route == msg.fields.routingKey);
+            let result = endpoint.handler(inputObj); 
 
             let resultBytes = Buffer.from(JSON.stringify(result));
 
-            channel.sendToQueue(msg.properties.replyTo, resultBytes, {
+            this._channel.sendToQueue(msg.properties.replyTo, resultBytes, {
                  correlationId: msg.properties.correlationId 
             });
 
-            channel.ack(msg);
+            this._channel.ack(msg);
         });
     }
 
@@ -48,5 +47,9 @@ export class RpcServer {
             exclusive: false,
             autoDelete: false
         });
+
+        for (let i = 0; i < this._endpoints.length; ++i) {
+            await channel.bindQueue(this._queueName, this._exchangeName, this._endpoints[i].route);
+        }
     }
 }
