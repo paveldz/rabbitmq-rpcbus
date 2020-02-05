@@ -1,9 +1,10 @@
 import { Channel, Connection } from 'amqplib';
 import { v4 as uuid } from 'uuid';
+import { IRpcClient } from './IRpcClient';
 
-export class RpcClient {
+export class RpcClient implements IRpcClient {
+    private _connection: Connection;
     private readonly _exchangeName: string;
-    private readonly _connection: Connection;
 
     private readonly _promiseResolveByCorrId = new Map<string, any>();
 
@@ -15,14 +16,14 @@ export class RpcClient {
         this._connection = connection;
     }
 
-    static async create(exchangeName: string, connection: Connection) {
+    public static async create(exchangeName: string, connection: Connection) {
         let instance = new RpcClient(exchangeName, connection);
         await instance.start();
 
         return instance;
     }
 
-    async sendCommand(name: string, data: any) {
+    public async sendCommand(name: string, data: any) {
         let id = uuid();
         let dataBytes = Buffer.from(JSON.stringify(data));
 

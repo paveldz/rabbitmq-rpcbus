@@ -1,4 +1,5 @@
 import { Connection, Channel } from "amqplib";
+import { RpcEndpoint } from "./cfg/RpcEndpoint";
 
 export class RpcServer {
     private readonly _queueName: string;
@@ -11,14 +12,21 @@ export class RpcServer {
         this._connection = connection;
     }
 
-    async endpoint(commandName: string, handler: (input: any) => any) {
-
+    public async setupEndpoints(endpoints: RpcEndpoint[]) {
         let channel = await this._connection.createChannel();
-        await this.setupEndpoint(commandName, channel);
+        await this.setupInfrastructure(channel);
+        channel.close();
+
+        endpoints.forEach(async endpoint => await this.setupEndpoint(endpoint));
+    }
+
+    private async setupEndpoint(endpoint: RpcEndpoint) : Promise<void> {
+        let channel = await this._connection.createChannel();
+        await channel.bindQueue(this._queueName, this._exchangeName, endpoint.route);
 
         channel.consume(this._queueName, msg => {
             let inputObj = JSON.parse(msg.content.toString());
-            let result = handler(inputObj);
+            let result = endpoint.handler(inputObj);
 
             let resultBytes = Buffer.from(JSON.stringify(result));
 
@@ -30,7 +38,7 @@ export class RpcServer {
         });
     }
 
-    private async setupEndpoint(commandName: string, channel: Channel) {
+    private async setupInfrastructure(channel: Channel) : Promise<void> {
         await channel.assertExchange(this._exchangeName, "direct", { durable: false });
 
         await channel.assertQueue(this._queueName, {
@@ -38,7 +46,5 @@ export class RpcServer {
             exclusive: false,
             autoDelete: false
         });
-
-        await channel.bindQueue(this._queueName, this._exchangeName, commandName);
     }
 }

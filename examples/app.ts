@@ -5,19 +5,23 @@ let connStr = "amqp://localhost";
 let exchangeName = "AsyncMessagingConsole_Rpc";
 
 const run = async () => {
-    let bus = new Bus(connStr, exchangeName);
-    await bus.connect();
+    let bus = await Bus.create(connStr, exchangeName, config => {
+        config.setupEndpoint("getResponse", command => {
+            console.log(command);
+            return { success: true };
+        });
 
-    let rpcServer = bus.createRpcServer("AsyncMessagingConsole_RpcQueue");
-        
-    await rpcServer.endpoint( "getResponse", command => {
-        console.log(command);
-        return { success: true };
-    });
+        config.setupEndpoint("sayHello", command => {
+            console.log(command);
+            return { result: "hello back" };
+        });
+    })
 
-    let rpcClient = await bus.createRpcClient(); 
-    let result = await rpcClient.sendCommand("getResponse", { message: "hello" });
+    let result = await bus.rpcClient.sendCommand("getResponse", { message: "I'd like to get a response" });
     console.log(result);
+
+    let result2 = await bus.rpcClient.sendCommand("sayHello", { message: "Hello!" });
+    console.log(result2);
 
     const rl = readline.createInterface({
         input: process.stdin,
