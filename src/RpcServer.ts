@@ -17,7 +17,9 @@ export class RpcServer {
         await this.setupInfrastructure(channel);
         channel.close();
 
-        endpoints.forEach(async endpoint => await this.setupEndpoint(endpoint));
+        for (let i = 0; i < endpoints.length; ++i) {
+            await this.setupEndpoint(endpoints[i]);
+        }
     }
 
     private async setupEndpoint(endpoint: RpcEndpoint) : Promise<void> {
