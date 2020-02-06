@@ -10,33 +10,25 @@ const run = async () => {
     let bus = await Bus.create(connStr, exchangeName, rpcConfig => {
         rpcConfig.rpcServerQueueName = rpcServerQueueName;
 
-        rpcConfig.setupRpcEndpoint("getResponse", command => {
-            console.log(command);
-            return { success: true };
+        rpcConfig.setupRpcEndpoint("service/sayHello", command => {
+            console.log(`Received message: ${JSON.stringify(command)}`);
+            return { response: "Hi! Nice to see you!" };
         });
 
-        rpcConfig.setupRpcEndpoint("sayHello", command => {
-            console.log(command);
-            return { result: "hello back" };
+        rpcConfig.setupRpcEndpoint("service/sayBye", command => {
+            console.log(`Received message: ${JSON.stringify(command)}`);
+            return { response: "Bye! See you later!" };
         });
     })
 
-    let result = await bus.rpcClient.sendCommand("getResponse", { message: "Hello1. I'd like to get a response" });
-    console.log(result);
+    let response0 = await bus.rpcClient.sendCommand("service/sayHello", { message: "Hello! (the first time)" });
+    console.log(`Received response: ${JSON.stringify(response0)}\n`);
 
-    let result2 = await bus.rpcClient.sendCommand("sayHello", { message: "Hello2" });
-    console.log(result2);
+    let response1 = await bus.rpcClient.sendCommand("service/sayHello", { message: "Hi! (the second time)" });
+    console.log(`Received response: ${JSON.stringify(response1)}\n`);
 
-    let result3 = await bus.rpcClient.sendCommand("sayHello", { message: "Hello3" });
-    console.log(result3);
-
-    let result4 = await bus.rpcClient.sendCommand("sayHello", { message: "Hello4" });
-    console.log(result4);
-
-    setTimeout(async () => {
-        let result5 = await bus.rpcClient.sendCommand("sayHello", { message: "Hellosdsdsdsdsd!" });
-        console.log(result5);
-    }, 10000);
+    let response2 = await bus.rpcClient.sendCommand("service/sayBye", { message: "Bye!" });
+    console.log(`Received response: ${JSON.stringify(response2)}\n`);
 
     const rl = readline.createInterface({
         input: process.stdin,
