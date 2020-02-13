@@ -1,40 +1,40 @@
 import { connect, Connection } from 'amqplib';
+import { BusConfig } from './config/BusConfig';
 import { IBus } from './IBus';
+import { IRpcClient } from './IRpcClient';
 import { RpcClient } from './RpcClient';
 import { RpcServer } from './RpcServer';
-import { RpcServerConfig } from './cfg/RpcServerConfig';
-import { IRpcClient } from './IRpcClient';
 
 export class Bus implements IBus {
     private readonly _exchangeName: string;
     private readonly _connectionString: string;
 
-    private readonly _rpcServerConfig: RpcServerConfig;
+    private readonly _busConfig: BusConfig;
 
     private _rpcClient: RpcClient;
     private _rpcServer: RpcServer;
 
     private _connection: Connection;
 
-    constructor(connectionsString: string, exchangeName: string, rpcServerConfig: RpcServerConfig) {
+    constructor(connectionsString: string, exchangeName: string, config: BusConfig) {
         this._exchangeName = exchangeName;
         this._connectionString = connectionsString;
 
-        this._rpcServerConfig = rpcServerConfig;
+        this._busConfig = config;
     }
 
     public static async create(
         connectionsString: string,
         exchangeName: string,
-        configure: (config: RpcServerConfig) => void) : Promise<IBus> {
+        configure: (config: BusConfig) => void) : Promise<IBus> {
 
-        let cfg = new RpcServerConfig();
+        let cfg = new BusConfig();
         configure(cfg);
 
         let bus = new Bus(connectionsString, exchangeName, cfg);
 
-        bus._rpcClient = new RpcClient(exchangeName);
-        bus._rpcServer = new RpcServer(exchangeName, cfg.rpcServerQueueName, cfg.endpoints);
+        bus._rpcClient = new RpcClient(exchangeName, cfg.rpcClient);
+        bus._rpcServer = new RpcServer(exchangeName, cfg.rpcServer);
 
         await bus.connect();
         return bus;

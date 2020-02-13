@@ -1,30 +1,42 @@
 import { Channel, Connection } from 'amqplib';
 import { v4 as uuid } from 'uuid';
+import { RpcClientConfig } from './config/RpcClientConfig';
 import { IRpcClient } from './IRpcClient';
+import { TimeoutError } from './TimeoutError';
 
 export class RpcClient implements IRpcClient {
     private _connection: Connection;
     private _channel: Channel;
 
-    private readonly _promiseResolveByCorrId = new Map<string, any>();
+    private readonly _promiseManagerByCorrId = new Map<string, IPromiseManager>();
 
     private readonly _exchangeName: string;
     private _replyQueueName: string;
 
-    constructor(exchangeName: string) {
+    private readonly DEFAULT_REQUEST_TIMEOUT: number = 1 * 60 * 1000; // min * sec * msec
+    private readonly _requestTimeout: number;
+
+    constructor(exchangeName: string, config: RpcClientConfig) {
         this._exchangeName = exchangeName;
+        this._requestTimeout = config.timeout ?? this.DEFAULT_REQUEST_TIMEOUT;
     }
 
     public async sendCommand(route: string, data: any) {
         let id = uuid();
         let dataBytes = Buffer.from(JSON.stringify(data));
 
-        let resolveFunc = null;
+        let timeout = setTimeout(() => this.cancelRequest(id), this._requestTimeout);
+
+        let promiseManager: IPromiseManager = null;
         let promise = new Promise<any>((resolve, reject) => {
-            resolveFunc = resolve;
+            promiseManager = {
+                resolve: resolve,
+                reject: reject,
+                timeout: timeout
+            };
         });
 
-        this._promiseResolveByCorrId.set(id, resolveFunc);
+        this._promiseManagerByCorrId.set(id, promiseManager);
 
         this._channel.publish(this._exchangeName, route, dataBytes, {
             correlationId: id,
@@ -45,12 +57,29 @@ export class RpcClient implements IRpcClient {
         this._replyQueueName = replyToQueue.queue;
 
         this._channel.consume(this._replyQueueName, msg => {
-            let resolveFunc = this._promiseResolveByCorrId.get(msg.properties.correlationId)
+            let promiseManager = this._promiseManagerByCorrId.get(msg.properties.correlationId);
 
-            if (resolveFunc) {
-                this._promiseResolveByCorrId.delete(msg.properties.correlationId);
-                resolveFunc(JSON.parse(msg.content.toString()));
+            if (promiseManager) {
+                this._promiseManagerByCorrId.delete(msg.properties.correlationId);
+
+                clearTimeout(promiseManager.timeout);
+                promiseManager.resolve(JSON.parse(msg.content.toString()));
             }
         }, { noAck: true });
     }
+
+    private cancelRequest(correlationId: string): void {
+        let promiseManager = this._promiseManagerByCorrId.get(correlationId);
+
+        if (promiseManager) {
+            this._promiseManagerByCorrId.delete(correlationId);
+            promiseManager.reject(new TimeoutError(`The request has been cancelled due to timeout: ${this._requestTimeout}ms`));
+        }
+    }
+}
+
+interface IPromiseManager {
+    readonly resolve: (value?: any) => void,
+    readonly reject: (reason?: any) => void,
+    readonly timeout: NodeJS.Timeout
 }

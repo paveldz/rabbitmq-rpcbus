@@ -7,7 +7,7 @@ export class RpcEndpoint {
         this._handler = handler;
     }
 
-    public get route() {
+    public get route(): string {
         return this._route;
     }
 

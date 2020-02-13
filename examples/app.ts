@@ -1,5 +1,6 @@
 import * as readline from 'readline';
 import { Bus } from '../src/Bus';
+import { TimeoutError } from '../src/TimeoutError';
 
 let connStr = "amqp://localhost";
 let exchangeName = "AsyncMessagingConsole_Rpc";
@@ -7,22 +8,31 @@ let rpcServerQueueName = "AsyncMessagingConsole_RpcQueue";
 
 const run = async () => {
 
-    let bus = await Bus.create(connStr, exchangeName, rpcConfig => {
-        rpcConfig.rpcServerQueueName = rpcServerQueueName;
+    let bus = await Bus.create(connStr, exchangeName, config => {
+        config.rpcClient.timeout = 1 * 60 * 1000; // min * sec * ms
+        config.rpcServer.queueName = rpcServerQueueName;
 
-        rpcConfig.setupRpcEndpoint("service/sayHello", command => {
+        config.rpcServer.addEndpoint("service/sayHello", command => {
             console.log(`Received message: ${JSON.stringify(command)}`);
             return { response: "Hi! Nice to see you!" };
         });
 
-        rpcConfig.setupRpcEndpoint("service/sayBye", command => {
+        config.rpcServer.addEndpoint("service/sayBye", command => {
             console.log(`Received message: ${JSON.stringify(command)}`);
             return { response: "Bye! See you later!" };
         });
-    })
+    });
 
-    let response0 = await bus.rpcClient.sendCommand("service/sayHello", { message: "Hello! (the first time)" });
-    console.log(`Received response: ${JSON.stringify(response0)}\n`);
+    try {
+        let response0 = await bus.rpcClient.sendCommand("service/not-existing-endpoint", { message: "Hello! (the first time)" });
+        console.log(`Received response: ${JSON.stringify(response0)}\n`);
+    } catch(error) {
+        if (error instanceof TimeoutError) {
+            console.log(`Error occured: ${error.message}`);
+        } else {
+            throw error;
+        }
+    }
 
     let response1 = await bus.rpcClient.sendCommand("service/sayHello", { message: "Hi! (the second time)" });
     console.log(`Received response: ${JSON.stringify(response1)}\n`);
