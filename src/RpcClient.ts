@@ -18,7 +18,7 @@ export class RpcClient implements IRpcClient {
 
     constructor(exchangeName: string, config: RpcClientConfig) {
         this._exchangeName = exchangeName;
-        this._requestTimeout = config.timeout ?? this.DEFAULT_REQUEST_TIMEOUT;
+        this._requestTimeout = config.timeout || this.DEFAULT_REQUEST_TIMEOUT;
     }
 
     public async sendCommand(route: string, data: any) {
