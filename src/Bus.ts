@@ -1,9 +1,9 @@
 import { connect, Connection } from 'amqplib';
 import { BusConfig } from './config/BusConfig';
 import { IBus } from './IBus';
-import { IRpcClient } from './IRpcClient';
 import { RpcClient } from './RpcClient';
 import { RpcServer } from './RpcServer';
+import { IRpcClient } from './IRpcClient';
 
 export class Bus implements IBus {
     private readonly _exchangeName: string;
@@ -14,16 +14,24 @@ export class Bus implements IBus {
     private _rpcClient: RpcClient;
     private _rpcServer: RpcServer;
 
-    private _connection: Connection;
+    private _connection: Connection | undefined;
 
-    constructor(connectionsString: string, exchangeName: string, config: BusConfig) {
+    constructor(
+        connectionsString: string,
+        exchangeName: string,
+        config: BusConfig,
+        rpcClient: RpcClient,
+        rpcServer: RpcServer,
+    ) {
         this._exchangeName = exchangeName;
         this._connectionString = connectionsString;
+        this._rpcClient = rpcClient;
+        this._rpcServer = rpcServer;
 
         this._busConfig = config;
     }
 
-    public static async create(
+    static async create(
         connectionsString: string,
         exchangeName: string,
         configure: (config: BusConfig) => void,
@@ -31,20 +39,16 @@ export class Bus implements IBus {
         let cfg = new BusConfig();
         configure(cfg);
 
-        let bus = new Bus(connectionsString, exchangeName, cfg);
-
-        bus._rpcClient = new RpcClient(exchangeName, cfg.rpcClient);
-        bus._rpcServer = new RpcServer(exchangeName, cfg.rpcServer);
+        const rpcClient = new RpcClient(exchangeName, cfg.rpcClient);
+        const rpcServer = new RpcServer(exchangeName, cfg.rpcServer);
+        let bus = new Bus(connectionsString, exchangeName, cfg, rpcClient, rpcServer);
 
         await bus.connect();
+
         return bus;
     }
 
-    public get rpcClient(): IRpcClient {
-        return this._rpcClient;
-    }
-
-    public async connect() {
+    async connect() {
         this._connection = await connect(this._connectionString);
         await this._rpcClient.start(this._connection);
         await this._rpcServer.start(this._connection);
@@ -55,5 +59,9 @@ export class Bus implements IBus {
         });
 
         console.log('RabbitMQ is connected.');
+    }
+
+    public get rpcClient(): IRpcClient {
+        return this._rpcClient;
     }
 }

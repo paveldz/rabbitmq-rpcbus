@@ -7,11 +7,11 @@ export class RpcEndpoint {
         this._handler = handler;
     }
 
-    public get route(): string {
+    get route(): string {
         return this._route;
     }
 
-    public get handler() {
+    get handler() {
         return this._handler;
     }
 }

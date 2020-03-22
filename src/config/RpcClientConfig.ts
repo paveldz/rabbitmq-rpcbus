@@ -1,11 +1,11 @@
 export class RpcClientConfig {
-    private _timeoutMs?: number;
+    private _timeoutMs?: number | undefined;
 
-    public set timeout(value: number) {
+    set timeout(value: number | undefined) {
         this._timeoutMs = value;
     }
 
-    public get timeout(): number {
+    get timeout(): number | undefined {
         return this._timeoutMs;
     }
 }
