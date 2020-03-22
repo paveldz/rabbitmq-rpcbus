@@ -1,5 +1,5 @@
-import { Connection, Channel } from "amqplib";
-import { RpcServerConfig } from "./config/RpcServerConfig";
+import { Connection, Channel } from 'amqplib';
+import { RpcServerConfig } from './config/RpcServerConfig';
 
 export class RpcServer {
     private readonly _exchangeName: string;
@@ -14,9 +14,9 @@ export class RpcServer {
         this._exchangeName = exchangeName;
         this._config = config;
 
-        this._config
-            .endpoints
-            .forEach(endpoint => this._routingTable.set(endpoint.route, endpoint.handler));
+        this._config.endpoints.forEach(endpoint =>
+            this._routingTable.set(endpoint.route, endpoint.handler),
+        );
     }
 
     public async start(connection: Connection) {
@@ -29,25 +29,25 @@ export class RpcServer {
             let inputObj = JSON.parse(msg.content.toString());
 
             let handler = this._routingTable.get(msg.fields.routingKey);
-            let result = handler(inputObj); 
+            let result = handler(inputObj);
 
             let resultBytes = Buffer.from(JSON.stringify(result));
 
             this._channel.sendToQueue(msg.properties.replyTo, resultBytes, {
-                 correlationId: msg.properties.correlationId 
+                correlationId: msg.properties.correlationId,
             });
 
             this._channel.ack(msg);
         });
     }
 
-    private async setupInfrastructure(channel: Channel) : Promise<void> {
-        await channel.assertExchange(this._exchangeName, "direct", { durable: false });
+    private async setupInfrastructure(channel: Channel): Promise<void> {
+        await channel.assertExchange(this._exchangeName, 'direct', { durable: false });
 
         await channel.assertQueue(this._config.queueName, {
             durable: true,
             exclusive: false,
-            autoDelete: false
+            autoDelete: false,
         });
 
         let endpoints = this._config.endpoints;

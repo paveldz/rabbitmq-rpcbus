@@ -1,10 +1,10 @@
-import { RpcEndpoint } from "./RpcEndpoint";
+import { RpcEndpoint } from './RpcEndpoint';
 
 export class RpcServerConfig {
     private readonly _endpoints: RpcEndpoint[] = [];
     private _queueName: string;
 
-    public get endpoints() : RpcEndpoint[] {
+    public get endpoints(): RpcEndpoint[] {
         let result = [].concat(this._endpoints);
         return result;
     }
@@ -17,7 +17,7 @@ export class RpcServerConfig {
         return this._queueName;
     }
 
-    public addEndpoint(route: string, handler: (input: any) => any) : void {
+    public addEndpoint(route: string, handler: (input: any) => any): void {
         this._endpoints.push(new RpcEndpoint(route, handler));
     }
 }

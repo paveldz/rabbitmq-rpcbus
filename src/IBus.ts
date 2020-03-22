@@ -1,4 +1,4 @@
-import { IRpcClient } from "./IRpcClient";
+import { IRpcClient } from './IRpcClient';
 
 export interface IBus {
     readonly rpcClient: IRpcClient;

@@ -26,8 +26,8 @@ export class Bus implements IBus {
     public static async create(
         connectionsString: string,
         exchangeName: string,
-        configure: (config: BusConfig) => void) : Promise<IBus> {
-
+        configure: (config: BusConfig) => void,
+    ): Promise<IBus> {
         let cfg = new BusConfig();
         configure(cfg);
 
@@ -40,7 +40,7 @@ export class Bus implements IBus {
         return bus;
     }
 
-    public get rpcClient() : IRpcClient {
+    public get rpcClient(): IRpcClient {
         return this._rpcClient;
     }
 
@@ -49,11 +49,11 @@ export class Bus implements IBus {
         await this._rpcClient.start(this._connection);
         await this._rpcServer.start(this._connection);
 
-        this._connection.on("close", () => {
-            console.log("RabbitMQ connection is closed. Trying to re-connect...");
+        this._connection.on('close', () => {
+            console.log('RabbitMQ connection is closed. Trying to re-connect...');
             this.connect();
         });
 
-        console.log("RabbitMQ is connected.");
+        console.log('RabbitMQ is connected.');
     }
 }
