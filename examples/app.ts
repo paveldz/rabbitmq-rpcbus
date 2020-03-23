@@ -8,7 +8,7 @@ let rpcServerQueueName = 'AsyncMessagingConsole_RpcQueue';
 
 const run = async () => {
     let bus = await Bus.create(connStr, exchangeName, config => {
-        config.rpcClient.timeout = 1 * 60 * 1000; // min * sec * ms
+        config.rpcClient.timeout = 1000; // ms
         config.rpcServer.queueName = rpcServerQueueName;
 
         config.rpcServer.addEndpoint('service/sayHello', command => {
