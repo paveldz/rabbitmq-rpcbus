@@ -27,20 +27,20 @@ export class RpcServer {
 
         if (!this._config.queueName) throw { no_queue_name: true };
 
-        this._channel.consume(this._config.queueName, msg => {
+        this._channel.consume(this._config.queueName, async msg => {
             // TODO: check this out
             if (!msg) return;
 
-            let inputObj = JSON.parse(msg.content.toString());
+            const inputObj = JSON.parse(msg.content.toString());
 
-            let handler = this._routingTable.get(msg.fields.routingKey);
+            const handler = this._routingTable.get(msg.fields.routingKey);
 
             // TODO: check this out
             if (!handler) throw { no_handler: true, routingKey: msg.fields.routingKey };
 
-            let result = handler(inputObj);
+            const result = await handler(inputObj);
 
-            let resultBytes = Buffer.from(JSON.stringify(result));
+            const resultBytes = Buffer.from(JSON.stringify(result));
 
             (this._channel as Channel).sendToQueue(msg.properties.replyTo, resultBytes, {
                 correlationId: msg.properties.correlationId,
@@ -54,14 +54,14 @@ export class RpcServer {
         await channel.assertExchange(this._exchangeName, 'direct', { durable: false });
 
         if (!this._config.queueName) throw { no_queue_name: true };
-        
+
         await channel.assertQueue(this._config.queueName, {
             durable: true,
             exclusive: false,
             autoDelete: false,
         });
 
-        let endpoints = this._config.endpoints;
+        const endpoints = this._config.endpoints;
         for (let i = 0; i < endpoints.length; ++i) {
             await channel.bindQueue(this._config.queueName, this._exchangeName, endpoints[i].route);
         }

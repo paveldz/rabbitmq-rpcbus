@@ -11,8 +11,9 @@ const run = async () => {
         config.rpcClient.timeout = 1000; // ms
         config.rpcServer.queueName = rpcServerQueueName;
 
-        config.rpcServer.addEndpoint('service/sayHello', command => {
+        config.rpcServer.addEndpoint('service/sayHello', async command => {
             console.log(`Received message: ${JSON.stringify(command)}`);
+            await Promise.resolve();
             return { response: 'Hi! Nice to see you!' };
         });
 
