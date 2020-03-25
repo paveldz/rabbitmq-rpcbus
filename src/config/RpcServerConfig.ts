@@ -9,7 +9,7 @@ export class RpcServerConfig {
         return result;
     }
 
-    set queueName(value: string | undefined) {
+    setQueueName(value: string) {
         this._queueName = value;
     }
 

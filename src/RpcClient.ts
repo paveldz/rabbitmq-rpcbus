@@ -13,21 +13,20 @@ export class RpcClient implements IRpcClient {
     private readonly _exchangeName: string;
     private _replyQueueName: string | undefined;
 
-    private readonly DEFAULT_REQUEST_TIMEOUT: number = 1 * 60 * 1000; // min * sec * msec
-    private readonly _requestTimeout: number;
+    private readonly _config: RpcClientConfig;
 
     constructor(exchangeName: string, config: RpcClientConfig) {
         this._exchangeName = exchangeName;
-        this._requestTimeout = config.timeout || this.DEFAULT_REQUEST_TIMEOUT;
+        this._config = config;
     }
 
     async sendCommand(route: string, data: any) {
-        if (!this._channel) return Promise.reject({ no_chanel: true });
+        if (!this._channel) throw { no_chanel: true };
 
         let id = uuid();
         let dataBytes = Buffer.from(JSON.stringify(data));
 
-        let timeout = setTimeout(() => this.cancelRequest(id), this._requestTimeout);
+        let timeout = setTimeout(() => this.cancelRequest(id), this._config.timeout);
 
         let promiseManager: IPromiseManager | null = null;
         let promise = new Promise<any>((resolve, reject) => {
@@ -38,7 +37,6 @@ export class RpcClient implements IRpcClient {
             };
         });
 
-        // TODO: check this out
         this._promiseManagerByCorrId.set(id, (promiseManager as unknown) as IPromiseManager);
 
         this._channel.publish(this._exchangeName, route, dataBytes, {
@@ -62,8 +60,7 @@ export class RpcClient implements IRpcClient {
         this._channel.consume(
             this._replyQueueName,
             msg => {
-                // TODO: check this out
-                if (!msg) throw { no_msg: true };
+                if (!msg) return;
 
                 let promiseManager = this._promiseManagerByCorrId.get(msg.properties.correlationId);
 
@@ -85,7 +82,7 @@ export class RpcClient implements IRpcClient {
             this._promiseManagerByCorrId.delete(correlationId);
             promiseManager.reject(
                 new TimeoutError(
-                    `The request has been cancelled due to timeout: ${this._requestTimeout}ms`,
+                    `The request has been cancelled due to timeout: ${this._config.timeout}ms`,
                 ),
             );
         }

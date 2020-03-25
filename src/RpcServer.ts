@@ -28,25 +28,27 @@ export class RpcServer {
         if (!this._config.queueName) throw { no_queue_name: true };
 
         this._channel.consume(this._config.queueName, async msg => {
-            // TODO: check this out
             if (!msg) return;
+            const channel = this._channel as Channel;
 
             const inputObj = JSON.parse(msg.content.toString());
 
             const handler = this._routingTable.get(msg.fields.routingKey);
 
-            // TODO: check this out
-            if (!handler) throw { no_handler: true, routingKey: msg.fields.routingKey };
+            if (!handler) {
+                channel.nack(msg);
+                throw { no_handler: true, routingKey: msg.fields.routingKey };
+            }
 
             const result = await handler(inputObj);
 
             const resultBytes = Buffer.from(JSON.stringify(result));
 
-            (this._channel as Channel).sendToQueue(msg.properties.replyTo, resultBytes, {
+            channel.sendToQueue(msg.properties.replyTo, resultBytes, {
                 correlationId: msg.properties.correlationId,
             });
 
-            (this._channel as Channel).ack(msg);
+            channel.ack(msg);
         });
     }
 

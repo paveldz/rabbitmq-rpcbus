@@ -1,6 +1,7 @@
 import * as readline from 'readline';
 import { Bus } from '../src/Bus';
 import { TimeoutError } from '../src/TimeoutError';
+import { RpcServerConfig } from '../src/config/RpcServerConfig';
 
 let connStr = 'amqp://localhost';
 let exchangeName = 'AsyncMessagingConsole_Rpc';
@@ -9,7 +10,7 @@ let rpcServerQueueName = 'AsyncMessagingConsole_RpcQueue';
 const run = async () => {
     let bus = await Bus.create(connStr, exchangeName, config => {
         config.rpcClient.timeout = 1000; // ms
-        config.rpcServer.queueName = rpcServerQueueName;
+        config.rpcServer.setQueueName(rpcServerQueueName);
 
         config.rpcServer.addEndpoint('service/sayHello', async command => {
             console.log(`Received message: ${JSON.stringify(command)}`);
