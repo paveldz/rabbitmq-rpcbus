@@ -51,7 +51,9 @@ export class Bus implements IBus {
     async connect() {
         this._connection = await connect(this._connectionString);
         await this._rpcClient.start(this._connection);
-        await this._rpcServer.start(this._connection);
+        if (this._busConfig.rpcServer.queueName) {
+            await this._rpcServer.start(this._connection);
+        }
 
         this._connection.on('close', () => {
             console.log('RabbitMQ connection is closed. Trying to re-connect...');
