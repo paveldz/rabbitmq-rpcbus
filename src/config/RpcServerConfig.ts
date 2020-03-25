@@ -5,7 +5,7 @@ export class RpcServerConfig {
     private _queueName: string | undefined;
 
     get endpoints(): RpcEndpoint[] {
-        let result = [...this._endpoints];
+        const result = [...this._endpoints];
         return result;
     }
 

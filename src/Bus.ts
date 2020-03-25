@@ -36,12 +36,12 @@ export class Bus implements IBus {
         exchangeName: string,
         configure: (config: BusConfig) => void,
     ): Promise<IBus> {
-        let cfg = new BusConfig();
+        const cfg = new BusConfig();
         configure(cfg);
 
         const rpcClient = new RpcClient(exchangeName, cfg.rpcClient);
         const rpcServer = new RpcServer(exchangeName, cfg.rpcServer);
-        let bus = new Bus(connectionsString, exchangeName, cfg, rpcClient, rpcServer);
+        const bus = new Bus(connectionsString, exchangeName, cfg, rpcClient, rpcServer);
 
         await bus.connect();
 
