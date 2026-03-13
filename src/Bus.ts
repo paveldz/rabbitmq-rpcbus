@@ -14,7 +14,7 @@ export class Bus implements IBus {
     private _rpcClient: RpcClient;
     private _rpcServer: RpcServer;
 
-    private _connection: ChannelModel | undefined;
+    private _channelModel: ChannelModel | undefined;
 
     constructor(
         connectionsString: string,
@@ -49,14 +49,13 @@ export class Bus implements IBus {
     }
 
     async connect() {
-        const connection = await connect(this._connectionString);
-        this._connection = connection;
-        await this._rpcClient.start(connection);
+        this._channelModel = await connect(this._connectionString);
+        await this._rpcClient.start(this._channelModel);
         if (this._busConfig.rpcServer.queueName) {
-            await this._rpcServer.start(connection);
+            await this._rpcServer.start(this._channelModel);
         }
 
-        connection.on('close', () => {
+        this._channelModel.on('close', () => {
             console.log('RabbitMQ connection is closed. Trying to re-connect...');
             this.connect();
         });

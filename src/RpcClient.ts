@@ -5,7 +5,7 @@ import { IRpcClient } from './IRpcClient';
 import { TimeoutError } from './TimeoutError';
 
 export class RpcClient implements IRpcClient {
-    private _connection: ChannelModel | undefined;
+    private _channelModel: ChannelModel | undefined;
     private _channel: Channel | undefined;
 
     private readonly _promiseManagerByCorrId = new Map<string, IPromiseManager>();
@@ -48,9 +48,9 @@ export class RpcClient implements IRpcClient {
         return promise;
     }
 
-    async start(connection: ChannelModel) {
-        this._connection = connection;
-        this._channel = await this._connection.createChannel();
+    async start(channelModel: ChannelModel) {
+        this._channelModel = channelModel;
+        this._channel = await this._channelModel.createChannel();
 
         await this._channel.assertExchange(this._exchangeName, 'direct', { durable: false });
 

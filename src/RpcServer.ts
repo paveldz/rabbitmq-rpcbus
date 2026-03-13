@@ -5,7 +5,7 @@ export class RpcServer {
     private readonly _exchangeName: string;
     private readonly _config: RpcServerConfig;
 
-    private _connection: ChannelModel | undefined;
+    private _channelModel: ChannelModel | undefined;
     private _channel: Channel | undefined;
 
     private readonly _routingTable = new Map<string, (input: any) => any>();
@@ -19,10 +19,10 @@ export class RpcServer {
         );
     }
 
-    async start(connection: ChannelModel) {
-        this._connection = connection;
+    async start(channelModel: ChannelModel) {
+        this._channelModel = channelModel;
 
-        this._channel = await this._connection.createChannel();
+        this._channel = await this._channelModel.createChannel();
         await this.setupInfrastructure(this._channel);
 
         if (!this._config.queueName) throw { no_queue_name: true };
