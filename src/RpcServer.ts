@@ -1,11 +1,11 @@
-import { Connection, Channel } from 'amqplib';
+import { ChannelModel, Channel } from 'amqplib';
 import { RpcServerConfig } from './config/RpcServerConfig';
 
 export class RpcServer {
     private readonly _exchangeName: string;
     private readonly _config: RpcServerConfig;
 
-    private _connection: Connection | undefined;
+    private _connection: ChannelModel | undefined;
     private _channel: Channel | undefined;
 
     private readonly _routingTable = new Map<string, (input: any) => any>();
@@ -19,7 +19,7 @@ export class RpcServer {
         );
     }
 
-    async start(connection: Connection) {
+    async start(connection: ChannelModel) {
         this._connection = connection;
 
         this._channel = await this._connection.createChannel();

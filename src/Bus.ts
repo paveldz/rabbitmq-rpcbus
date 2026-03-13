@@ -1,4 +1,4 @@
-import { connect, Connection } from 'amqplib';
+import { connect, ChannelModel } from 'amqplib';
 import { BusConfig } from './config/BusConfig';
 import { IBus } from './IBus';
 import { RpcClient } from './RpcClient';
@@ -14,7 +14,7 @@ export class Bus implements IBus {
     private _rpcClient: RpcClient;
     private _rpcServer: RpcServer;
 
-    private _connection: Connection | undefined;
+    private _connection: ChannelModel | undefined;
 
     constructor(
         connectionsString: string,
@@ -49,13 +49,14 @@ export class Bus implements IBus {
     }
 
     async connect() {
-        this._connection = await connect(this._connectionString);
-        await this._rpcClient.start(this._connection);
+        const connection = await connect(this._connectionString);
+        this._connection = connection;
+        await this._rpcClient.start(connection);
         if (this._busConfig.rpcServer.queueName) {
-            await this._rpcServer.start(this._connection);
+            await this._rpcServer.start(connection);
         }
 
-        this._connection.on('close', () => {
+        connection.on('close', () => {
             console.log('RabbitMQ connection is closed. Trying to re-connect...');
             this.connect();
         });

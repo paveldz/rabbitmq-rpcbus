@@ -1,11 +1,11 @@
-import { Channel, Connection } from 'amqplib';
+import { Channel, ChannelModel } from 'amqplib';
 import { v4 as uuid } from 'uuid';
 import { RpcClientConfig } from './config/RpcClientConfig';
 import { IRpcClient } from './IRpcClient';
 import { TimeoutError } from './TimeoutError';
 
 export class RpcClient implements IRpcClient {
-    private _connection: Connection | undefined;
+    private _connection: ChannelModel | undefined;
     private _channel: Channel | undefined;
 
     private readonly _promiseManagerByCorrId = new Map<string, IPromiseManager>();
@@ -48,7 +48,7 @@ export class RpcClient implements IRpcClient {
         return promise;
     }
 
-    async start(connection: Connection) {
+    async start(connection: ChannelModel) {
         this._connection = connection;
         this._channel = await this._connection.createChannel();
 
